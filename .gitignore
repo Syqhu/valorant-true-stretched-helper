@@ -1,0 +1,12 @@
+*.codex-backup
+*.state.json
+*.log
+*.tmp
+*.bak
+*.png
+*.jpg
+*.jpeg
+*.mp4
+*.webm
+*.zip
+
