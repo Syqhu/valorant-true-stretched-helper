@@ -696,6 +696,8 @@ $script:AutoApply = $false
 $script:Applied = $false
 $script:UnlockedAfterGame = $false
 $script:SeenValorant = $false
+$script:AutoConfigRefreshes = 0
+$script:MaxAutoConfigRefreshes = 8
 
 function Get-SelectedResolution {
     $text = [string]$resolutionBox.SelectedItem
@@ -801,6 +803,7 @@ $startButton.Add_Click({
     $script:Applied = $false
     $script:UnlockedAfterGame = $false
     $script:SeenValorant = $false
+    $script:AutoConfigRefreshes = 0
     $status.Text = ($setupMessages -join " / ") + " / VALORANT を起動しました。終了後に自動復元します。"
 })
 
@@ -866,6 +869,17 @@ $timer.Add_Tick({
     }
 
     if (-not $script:AutoApply -or $script:Applied) { return }
+
+    if ($script:AutoConfigRefreshes -lt $script:MaxAutoConfigRefreshes) {
+        $refreshResult = Write-SelectedConfig
+        if (-not $refreshResult.Ok) {
+            $refreshResult = Write-KnownConfigFallback
+        }
+        $script:AutoConfigRefreshes++
+        if ($refreshResult.Ok) {
+            $status.Text = "アカウント切替対応: INIを再スキャンして再適用しました。$($script:AutoConfigRefreshes)/$($script:MaxAutoConfigRefreshes)"
+        }
+    }
 
     if ($valorant) {
         $result = Apply-BorderlessStretch
