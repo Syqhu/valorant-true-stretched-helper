@@ -661,7 +661,7 @@ $restoreAllButton.Size = New-Object System.Drawing.Size(140, 32)
 $form.Controls.Add($restoreAllButton)
 
 $startButton = New-Object System.Windows.Forms.Button
-$startButton.Text = "設定して起動 + 自動適用"
+$startButton.Text = "設定だけ適用"
 $startButton.Location = New-Object System.Drawing.Point(18, 354)
 $startButton.Size = New-Object System.Drawing.Size(210, 38)
 $form.Controls.Add($startButton)
@@ -679,7 +679,7 @@ $configOnlyButton.Size = New-Object System.Drawing.Size(150, 38)
 $form.Controls.Add($configOnlyButton)
 
 $help = New-Object System.Windows.Forms.Label
-$help.Text = "手順: 1) VALORANT を閉じる  2) Reddit方式は Windows解像度/Scalingをオン  3) 設定して起動  4) ゲーム内 Fill  5) 終了後に自動復元"
+$help.Text = "手順: 1) VALORANT を閉じる  2) 設定だけ適用  3) VALORANTは手動で起動  4) ゲーム内 Fill  5) 終了後に自動復元"
 $help.Location = New-Object System.Drawing.Point(18, 416)
 $help.Size = New-Object System.Drawing.Size(700, 45)
 $form.Controls.Add($help)
@@ -755,7 +755,6 @@ $startButton.Add_Click({
     }
 
     $setupMessages = @($result.Message)
-    $setupMessages += Ensure-VanguardService
 
     if ($scalingCheck.Checked) {
         if (Test-IsAdmin) {
@@ -785,26 +784,12 @@ $startButton.Add_Click({
         }
     }
 
-    $launch = Resolve-ValorantLaunch
-    if (-not $launch) {
-        if ($script:DisplayChanged) {
-            [void](Restore-WindowsDisplayMode)
-            $script:DisplayChanged = $false
-        }
-        if ($script:ScalingChanged) {
-            [void](Restore-WindowsStretchScaling)
-        }
-        $status.Text = "設定は完了しましたが、VALORANT の起動ファイルが見つかりません。Windows設定は戻しました。"
-        return
-    }
-
-    Start-Process -FilePath $launch.File -ArgumentList $launch.Args
     $script:AutoApply = $true
     $script:Applied = $false
     $script:UnlockedAfterGame = $false
     $script:SeenValorant = $false
     $script:AutoConfigRefreshes = 0
-    $status.Text = ($setupMessages -join " / ") + " / VALORANT を起動しました。終了後に自動復元します。"
+    $status.Text = ($setupMessages -join " / ") + " / VALORANTは起動していません。手動で起動すると監視と自動復元だけ行います。"
 })
 
 $applyNowButton.Add_Click({
