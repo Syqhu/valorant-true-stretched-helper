@@ -1,6 +1,6 @@
-# VALORANT True Stretched Helper
+# VALORANT True Stretched Helper for Windows 11
 
-This repository contains a small Windows PowerShell/WinForms helper that was created while testing true stretched resolution workflows for VALORANT.
+This repository contains a small Windows PowerShell/WinForms helper for Windows 11 PCs. It helps apply and restore local display/config settings used for true stretched resolution workflows in VALORANT.
 
 It is being shared for support / troubleshooting context. It is not a cheat, does not read or write VALORANT memory, and does not attempt to bypass Vanguard. It changes local Windows display settings, local VALORANT configuration files, and window placement.
 
@@ -18,13 +18,13 @@ It is being shared for support / troubleshooting context. It is not a cheat, doe
 - Optionally set the config file read-only while launching.
 - Optionally change the Windows display resolution.
 - Save the previous Windows display mode to `ValorantTrueStretch.state.json`.
-- Restore the previous Windows display mode when VALORANT exits or when the restore button is pressed.
+- Restore the previous Windows display mode, or force restore to `1920x1080`, when VALORANT exits or when the restore button is pressed.
 - Optionally set Windows graphics driver `Scaling` registry values to `3`, then restore them later.
-- Start the Riot Client/VALORANT through normal installed paths.
+- It does not start Riot Client or VALORANT. Launch the game manually after applying settings.
 
 ## Important notes
 
-- Custom resolutions such as `1600x1080` must already be registered in Windows/GPU settings. The script cannot safely create NVIDIA/AMD/Intel/CRU custom resolutions automatically.
+- Custom resolutions such as `1080x1080`, `1280x1080`, or `1600x1080` must already be registered in Windows/GPU settings. The script cannot safely create NVIDIA/AMD/Intel custom resolutions automatically.
 - `Scaling=3` registry changes and INI read-only locking may affect VALORANT/Vanguard behavior. These options should be used carefully.
 - The script includes restore paths, but a PC restart may still be needed after Vanguard-related errors.
 
@@ -52,4 +52,3 @@ Generated runtime files are ignored by Git:
 - screenshots and videos
 
 The script uses environment variables such as `%LOCALAPPDATA%` instead of hardcoded user profile paths.
-

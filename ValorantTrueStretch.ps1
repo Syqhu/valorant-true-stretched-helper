@@ -152,6 +152,17 @@ function Set-WindowsDisplayMode($width, $height, $frequency) {
 }
 
 function Restore-WindowsDisplayMode {
+    if ($restore1920Check -and $restore1920Check.Checked) {
+        $freq = 60
+        $savedMode = Get-SavedDisplayMode
+        if ($savedMode -and $savedMode.Frequency) {
+            $freq = [int]$savedMode.Frequency
+        } elseif ($script:OriginalDisplayMode -and $script:OriginalDisplayMode.dmDisplayFrequency) {
+            $freq = [int]$script:OriginalDisplayMode.dmDisplayFrequency
+        }
+        return Set-WindowsDisplayMode 1920 1080 $freq
+    }
+
     $mode = Get-SavedDisplayMode
     if (-not $mode) { $mode = $script:OriginalDisplayMode }
     if (-not $mode) { return $false }
@@ -559,12 +570,13 @@ $resolutionBox.Location = New-Object System.Drawing.Point(140, 108)
 $resolutionBox.Size = New-Object System.Drawing.Size(190, 26)
 [void]$resolutionBox.Items.Add("1280x960  (4:3)")
 [void]$resolutionBox.Items.Add("1440x1080 (4:3)")
-[void]$resolutionBox.Items.Add("1280x1080 (Reddit)")
-[void]$resolutionBox.Items.Add("1600x1080 (Reddit)")
+[void]$resolutionBox.Items.Add("1080x1080 (Square)")
+[void]$resolutionBox.Items.Add("1280x1080 (Wide stretch)")
+[void]$resolutionBox.Items.Add("1600x1080 (Wide stretch)")
 [void]$resolutionBox.Items.Add("1680x1050 (16:10)")
 [void]$resolutionBox.Items.Add("1024x768  (4:3)")
 [void]$resolutionBox.Items.Add("1280x1024 (5:4)")
-$resolutionBox.SelectedIndex = 2
+$resolutionBox.SelectedIndex = 3
 $form.Controls.Add($resolutionBox)
 
 $modeLabel = New-Object System.Windows.Forms.Label
@@ -603,10 +615,17 @@ $changeWindowsResCheck.Location = New-Object System.Drawing.Point(360, 164)
 $changeWindowsResCheck.Size = New-Object System.Drawing.Size(300, 24)
 $form.Controls.Add($changeWindowsResCheck)
 
+$restore1920Check = New-Object System.Windows.Forms.CheckBox
+$restore1920Check.Text = "終了時は1920x1080へ戻す"
+$restore1920Check.Checked = $true
+$restore1920Check.Location = New-Object System.Drawing.Point(360, 188)
+$restore1920Check.Size = New-Object System.Drawing.Size(260, 24)
+$form.Controls.Add($restore1920Check)
+
 $scalingCheck = New-Object System.Windows.Forms.CheckBox
 $scalingCheck.Text = "Scaling=3も自動適用/復元"
 $scalingCheck.Checked = $false
-$scalingCheck.Location = New-Object System.Drawing.Point(360, 192)
+$scalingCheck.Location = New-Object System.Drawing.Point(360, 212)
 $scalingCheck.Size = New-Object System.Drawing.Size(260, 24)
 $form.Controls.Add($scalingCheck)
 
@@ -779,7 +798,7 @@ $startButton.Add_Click({
             }
             Clear-DisplayModeState
             [void](Unlock-ValorantConfigs)
-            $status.Text = "Windows解像度を $($res.Width)x$($res.Height) / $([int]$hzBox.Value)Hz に変更できませんでした。この解像度がWindowsに未登録です。NVIDIA設定またはCRUで先に追加してください。VALORANTは起動していません。"
+            $status.Text = "Windows解像度を $($res.Width)x$($res.Height) / $([int]$hzBox.Value)Hz に変更できませんでした。この解像度がWindowsに未登録です。GPU設定またはカスタム解像度ツールで先に追加してください。VALORANTは起動していません。"
             return
         }
     }
