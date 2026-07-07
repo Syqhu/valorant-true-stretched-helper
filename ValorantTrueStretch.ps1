@@ -206,6 +206,25 @@ function Clear-DisplayModeState {
     }
 }
 
+function Update-CurrentDisplayInfo {
+    $mode = Get-CurrentDisplayMode
+    if ($hzBox) {
+        $hzBox.Value = [Math]::Max([int]$hzBox.Minimum, [Math]::Min([int]$hzBox.Maximum, [int]$mode.dmDisplayFrequency))
+    }
+    if ($currentDisplayLabel) {
+        $currentDisplayLabel.Text = "現在: $($mode.dmPelsWidth)x$($mode.dmPelsHeight) / $($mode.dmDisplayFrequency)Hz"
+    }
+    return $mode
+}
+
+function Get-SelectedRefreshRate {
+    if ($autoHzCheck -and $autoHzCheck.Checked) {
+        $mode = Update-CurrentDisplayInfo
+        return [int]$mode.dmDisplayFrequency
+    }
+    return [int]$hzBox.Value
+}
+
 function Test-IsAdmin {
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
     $principal = New-Object Security.Principal.WindowsPrincipal($identity)
@@ -643,6 +662,19 @@ $hzBox.Maximum = 500
 $hzBox.Value = [Math]::Max(30, [Math]::Min(500, $script:OriginalDisplayMode.dmDisplayFrequency))
 $form.Controls.Add($hzBox)
 
+$autoHzCheck = New-Object System.Windows.Forms.CheckBox
+$autoHzCheck.Text = "現在Hzを自動使用"
+$autoHzCheck.Checked = $true
+$autoHzCheck.Location = New-Object System.Drawing.Point(240, 180)
+$autoHzCheck.Size = New-Object System.Drawing.Size(150, 24)
+$form.Controls.Add($autoHzCheck)
+
+$refreshHzButton = New-Object System.Windows.Forms.Button
+$refreshHzButton.Text = "Hz更新"
+$refreshHzButton.Location = New-Object System.Drawing.Point(392, 178)
+$refreshHzButton.Size = New-Object System.Drawing.Size(76, 28)
+$form.Controls.Add($refreshHzButton)
+
 $currentDisplayLabel = New-Object System.Windows.Forms.Label
 $currentDisplayLabel.Text = "現在: $($script:OriginalDisplayMode.dmPelsWidth)x$($script:OriginalDisplayMode.dmPelsHeight) / $($script:OriginalDisplayMode.dmDisplayFrequency)Hz"
 $currentDisplayLabel.Location = New-Object System.Drawing.Point(18, 216)
@@ -709,6 +741,8 @@ $status.Size = New-Object System.Drawing.Size(700, 62)
 $status.Text = "待機中"
 $form.Controls.Add($status)
 
+[void](Update-CurrentDisplayInfo)
+
 $timer = New-Object System.Windows.Forms.Timer
 $timer.Interval = 2500
 $script:AutoApply = $false
@@ -762,6 +796,11 @@ $configOnlyButton.Add_Click({
     $status.Text = $result.Message
 })
 
+$refreshHzButton.Add_Click({
+    $mode = Update-CurrentDisplayInfo
+    $status.Text = "現在Hzを取得しました: $($mode.dmDisplayFrequency)Hz"
+})
+
 $startButton.Add_Click({
     $result = Write-SelectedConfig
     if (-not $result.Ok) {
@@ -788,17 +827,18 @@ $startButton.Add_Click({
         $res = Get-SelectedResolution
         $script:OriginalDisplayMode = Get-CurrentDisplayMode
         Save-DisplayModeState
-        $okDisplay = Set-WindowsDisplayMode $res.Width $res.Height ([int]$hzBox.Value)
+        $selectedHz = Get-SelectedRefreshRate
+        $okDisplay = Set-WindowsDisplayMode $res.Width $res.Height $selectedHz
         if ($okDisplay) {
             $script:DisplayChanged = $true
-            $setupMessages += "Windows解像度を $($res.Width)x$($res.Height) / $([int]$hzBox.Value)Hz に変更しました。"
+            $setupMessages += "Windows解像度を $($res.Width)x$($res.Height) / $selectedHz Hz に変更しました。"
         } else {
             if ($script:ScalingChanged) {
                 [void](Restore-WindowsStretchScaling)
             }
             Clear-DisplayModeState
             [void](Unlock-ValorantConfigs)
-            $status.Text = "Windows解像度を $($res.Width)x$($res.Height) / $([int]$hzBox.Value)Hz に変更できませんでした。この解像度がWindowsに未登録です。GPU設定またはカスタム解像度ツールで先に追加してください。VALORANTは起動していません。"
+            $status.Text = "Windows解像度を $($res.Width)x$($res.Height) / $selectedHz Hz に変更できませんでした。この解像度/HzがWindowsに未登録です。GPU設定またはカスタム解像度ツールで先に追加してください。VALORANTは起動していません。"
             return
         }
     }
