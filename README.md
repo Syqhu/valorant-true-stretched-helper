@@ -10,6 +10,8 @@ It is being shared for support / troubleshooting context. It is not a cheat, doe
 - `Start-ValorantTrueStretch.cmd` - Starts the helper with administrator prompt.
 - `VAN102Fix.ps1` - One-click recovery helper for local VAN -102 troubleshooting.
 - `Start-VAN102Fix.cmd` - Starts the VAN -102 recovery helper with administrator prompt.
+- `ManualStretchHelper.ps1` - Safer manual-only helper. It does not launch VALORANT, monitor VALORANT, edit INI files automatically, touch Vanguard, use window APIs, or change registry values.
+- `Start-ManualStretchHelper.cmd` - Starts the manual-only helper.
 - `GameOptimizer.ps1` - Separate game preparation helper that can close selected non-system apps.
 - `Start-GameOptimizer.cmd` - Starts the game optimizer helper.
 
@@ -41,6 +43,18 @@ It is being shared for support / troubleshooting context. It is not a cheat, doe
 - Shows the latest relevant `vgc` event message.
 
 If `vgc` still reports `Incorrect function` or remains stopped, reinstall Riot Vanguard and reboot.
+
+## Manual-only helper
+
+`Start-ManualStretchHelper.cmd` is intended for safer sharing. It only:
+
+- Lists local `GameUserSettings.ini` files.
+- Opens the selected INI in Notepad.
+- Copies suggested INI lines to the clipboard.
+- Copies read-only / unlock commands to the clipboard.
+- Opens Windows display settings.
+
+It does not automatically edit files, start VALORANT, monitor VALORANT, manipulate VALORANT windows, change registry values, or control Vanguard services.
 
 ## Reported test symptoms
 
