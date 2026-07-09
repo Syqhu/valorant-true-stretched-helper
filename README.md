@@ -8,6 +8,8 @@ It is being shared for support / troubleshooting context. It is not a cheat, doe
 
 - `ValorantTrueStretch.ps1` - Main GUI helper for VALORANT true stretched testing.
 - `Start-ValorantTrueStretch.cmd` - Starts the helper with administrator prompt.
+- `VAN102Fix.ps1` - One-click recovery helper for local VAN -102 troubleshooting.
+- `Start-VAN102Fix.cmd` - Starts the VAN -102 recovery helper with administrator prompt.
 - `GameOptimizer.ps1` - Separate game preparation helper that can close selected non-system apps.
 - `Start-GameOptimizer.cmd` - Starts the game optimizer helper.
 
@@ -27,6 +29,18 @@ It is being shared for support / troubleshooting context. It is not a cheat, doe
 - Custom resolutions such as `1080x1080`, `1280x1080`, or `1600x1080` must already be registered in Windows/GPU settings. The script cannot safely create NVIDIA/AMD/Intel custom resolutions automatically.
 - `Scaling=3` registry changes and INI read-only locking may affect VALORANT/Vanguard behavior. These options should be used carefully.
 - The script includes restore paths, but a PC restart may still be needed after Vanguard-related errors.
+
+## VAN -102 recovery helper
+
+`Start-VAN102Fix.cmd` does not launch VALORANT. It:
+
+- Closes Riot/VALORANT processes after confirmation.
+- Unlocks all local `GameUserSettings.ini` files.
+- Restores display resolution from saved state, or falls back to `1920x1080`.
+- Attempts to start the `vgc` Vanguard service.
+- Shows the latest relevant `vgc` event message.
+
+If `vgc` still reports `Incorrect function` or remains stopped, reinstall Riot Vanguard and reboot.
 
 ## Reported test symptoms
 
