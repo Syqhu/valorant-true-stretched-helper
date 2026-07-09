@@ -23,13 +23,13 @@ It is being shared for support / troubleshooting context. It is not a cheat, doe
 - Optionally change the Windows display resolution.
 - Save the previous Windows display mode to `ValorantTrueStretch.state.json`.
 - Restore the previous Windows display mode, or force restore to `1920x1080`, when VALORANT exits or when the restore button is pressed.
-- Optionally set Windows graphics driver `Scaling` registry values to `3`, then restore them later.
+- Does not modify Windows graphics driver `Scaling` registry values.
 - It does not start Riot Client or VALORANT. Launch the game manually after applying settings.
 
 ## Important notes
 
 - Custom resolutions such as `1080x1080`, `1280x1080`, or `1600x1080` must already be registered in Windows/GPU settings. The script cannot safely create NVIDIA/AMD/Intel custom resolutions automatically.
-- `Scaling=3` registry changes and INI read-only locking may affect VALORANT/Vanguard behavior. These options should be used carefully.
+- INI read-only locking may affect VALORANT/Vanguard behavior. This option should be used carefully.
 - The script includes restore paths, but a PC restart may still be needed after Vanguard-related errors.
 
 ## VAN -102 recovery helper

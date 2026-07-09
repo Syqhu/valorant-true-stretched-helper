@@ -171,8 +171,6 @@ function Restore-WindowsDisplayMode {
 
 $script:OriginalDisplayMode = Get-CurrentDisplayMode
 $script:DisplayChanged = $false
-$script:ScalingBackup = @()
-$script:ScalingChanged = $false
 
 function Save-DisplayModeState {
     $mode = Get-CurrentDisplayMode
@@ -250,49 +248,6 @@ function Ensure-VanguardService {
     return "Vanguardサービス: $($service.Status)"
 }
 
-function Set-WindowsStretchScaling {
-    $script:ScalingBackup = @()
-    $base = "HKLM:\SYSTEM\CurrentControlSet\Control\GraphicsDrivers"
-    $parents = @("Configuration", "Connectivity", "ScaleFactors")
-    $changed = 0
-
-    foreach ($parent in $parents) {
-        $root = Join-Path $base $parent
-        if (-not (Test-Path $root)) { continue }
-
-        Get-ChildItem -Path $root -Recurse -ErrorAction SilentlyContinue | ForEach-Object {
-            $key = $_.PSPath
-            $value = Get-ItemProperty -LiteralPath $key -Name "Scaling" -ErrorAction SilentlyContinue
-            if ($null -ne $value) {
-                $old = $value.Scaling
-                $script:ScalingBackup += [pscustomobject]@{ Path = $key; Value = $old }
-                try {
-                    Set-ItemProperty -LiteralPath $key -Name "Scaling" -Value 3 -Type DWord -ErrorAction Stop
-                    $changed++
-                } catch {}
-            }
-        }
-    }
-
-    $script:ScalingChanged = ($changed -gt 0)
-    return $changed
-}
-
-function Restore-WindowsStretchScaling {
-    $restored = 0
-    foreach ($entry in $script:ScalingBackup) {
-        if ($entry.Path -and (Test-Path -LiteralPath $entry.Path)) {
-            try {
-                Set-ItemProperty -LiteralPath $entry.Path -Name "Scaling" -Value $entry.Value -Type DWord -ErrorAction Stop
-                $restored++
-            } catch {}
-        }
-    }
-
-    $script:ScalingChanged = $false
-    return $restored
-}
-
 function Restore-AllTemporarySettings {
     $messages = @()
 
@@ -310,13 +265,6 @@ function Restore-AllTemporarySettings {
         $script:DisplayChanged = $false
     } else {
         $messages += "Windows解像度変更なし"
-    }
-
-    if ($script:ScalingChanged) {
-        $restoredScaling = Restore-WindowsStretchScaling
-        $messages += "Scaling復元: $restoredScaling 件"
-    } else {
-        $messages += "Scaling変更なし"
     }
 
     return ($messages -join " / ")
@@ -641,13 +589,6 @@ $restore1920Check.Location = New-Object System.Drawing.Point(360, 188)
 $restore1920Check.Size = New-Object System.Drawing.Size(260, 24)
 $form.Controls.Add($restore1920Check)
 
-$scalingCheck = New-Object System.Windows.Forms.CheckBox
-$scalingCheck.Text = "Scaling=3も自動適用/復元"
-$scalingCheck.Checked = $false
-$scalingCheck.Location = New-Object System.Drawing.Point(360, 212)
-$scalingCheck.Size = New-Object System.Drawing.Size(260, 24)
-$form.Controls.Add($scalingCheck)
-
 $hzLabel = New-Object System.Windows.Forms.Label
 $hzLabel.Text = "Hz"
 $hzLabel.Location = New-Object System.Drawing.Point(18, 184)
@@ -814,15 +755,6 @@ $startButton.Add_Click({
 
     $setupMessages = @($result.Message)
 
-    if ($scalingCheck.Checked) {
-        if (Test-IsAdmin) {
-            $changed = Set-WindowsStretchScaling
-            $setupMessages += "Scaling=3 を適用しました: $changed 件"
-        } else {
-            $setupMessages += "Scaling=3 は管理者権限がないため適用できませんでした。"
-        }
-    }
-
     if ($changeWindowsResCheck.Checked) {
         $res = Get-SelectedResolution
         $script:OriginalDisplayMode = Get-CurrentDisplayMode
@@ -833,9 +765,6 @@ $startButton.Add_Click({
             $script:DisplayChanged = $true
             $setupMessages += "Windows解像度を $($res.Width)x$($res.Height) / $selectedHz Hz に変更しました。"
         } else {
-            if ($script:ScalingChanged) {
-                [void](Restore-WindowsStretchScaling)
-            }
             Clear-DisplayModeState
             [void](Unlock-ValorantConfigs)
             $status.Text = "Windows解像度を $($res.Width)x$($res.Height) / $selectedHz Hz に変更できませんでした。この解像度/HzがWindowsに未登録です。GPU設定またはカスタム解像度ツールで先に追加してください。VALORANTは起動していません。"
@@ -900,15 +829,9 @@ $timer.Add_Tick({
             $script:DisplayChanged = $false
         }
 
-        $scalingText = ""
-        if ($script:ScalingChanged) {
-            $restoredScaling = Restore-WindowsStretchScaling
-            $scalingText = " / Scalingを復元しました: $restoredScaling 件"
-        }
-
         $script:UnlockedAfterGame = $true
         $script:AutoApply = $false
-        $status.Text = "VALORANT 終了を検知したので、INIロックを解除しました。解除: $count 件$displayText$scalingText"
+        $status.Text = "VALORANT 終了を検知したので、INIロックを解除しました。解除: $count 件$displayText"
         return
     }
 
