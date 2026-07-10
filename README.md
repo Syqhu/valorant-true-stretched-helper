@@ -12,6 +12,8 @@ It is being shared for support / troubleshooting context. It is not a cheat, doe
 - `Start-VAN102Fix.cmd` - Starts the VAN -102 recovery helper with administrator prompt.
 - `ManualStretchHelper.ps1` - Safer manual-only helper. It does not launch VALORANT, monitor VALORANT, edit INI files automatically, touch Vanguard, use window APIs, or change registry values.
 - `Start-ManualStretchHelper.cmd` - Starts the manual-only helper.
+- `FPSBoostTool.ps1` - General FPS preparation helper. It can trim memory, switch power plan, open Windows game settings, and close selected non-system apps.
+- `Start-FPSBoostTool.cmd` - Starts the FPS boost helper.
 - `GameOptimizer.ps1` - Separate game preparation helper that can close selected non-system apps.
 - `Start-GameOptimizer.cmd` - Starts the game optimizer helper.
 
