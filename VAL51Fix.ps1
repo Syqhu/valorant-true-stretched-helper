@@ -95,6 +95,41 @@ function Close-RiotProcesses {
     Add-Log "Closed processes: $closed. Open Riot Client manually."
 }
 
+function Backup-RiotClientCache {
+    $result = Confirm-Action "This will close Riot Client and move local Riot Client Config/Data/HttpCache to a backup folder. You will need to sign in again." "Backup Riot Cache"
+    if ($result -ne [System.Windows.Forms.DialogResult]::OK) {
+        Add-Log "Backup Riot Cache: cancelled."
+        return
+    }
+
+    Close-RiotProcesses
+
+    $root = Join-Path $env:LOCALAPPDATA "Riot Games\Riot Client"
+    if (-not (Test-Path -LiteralPath $root)) {
+        Add-Log "Riot Client local folder was not found: $root"
+        return
+    }
+
+    $stamp = Get-Date -Format "yyyyMMdd-HHmmss"
+    $backupRoot = Join-Path $root "Backups\VAL51-$stamp"
+    New-Item -ItemType Directory -Path $backupRoot -Force | Out-Null
+
+    $names = @("Config", "Data", "HttpCache")
+    foreach ($name in $names) {
+        $source = Join-Path $root $name
+        if (Test-Path -LiteralPath $source) {
+            $dest = Join-Path $backupRoot $name
+            Add-Log "Move: $source -> $dest"
+            Move-Item -LiteralPath $source -Destination $dest -Force -ErrorAction SilentlyContinue
+        } else {
+            Add-Log "Skip missing: $source"
+        }
+    }
+
+    Add-Log "Done. Backup folder: $backupRoot"
+    Add-Log "Open Riot Client manually and sign in again."
+}
+
 function Show-NetworkSnapshot {
     Add-Log "Network snapshot started."
 
@@ -177,15 +212,21 @@ $adapterButton.Location = New-Object System.Drawing.Point(362, 144)
 $adapterButton.Size = New-Object System.Drawing.Size(170, 36)
 $form.Controls.Add($adapterButton)
 
+$cacheButton = New-Object System.Windows.Forms.Button
+$cacheButton.Text = "Backup Riot Cache"
+$cacheButton.Location = New-Object System.Drawing.Point(544, 144)
+$cacheButton.Size = New-Object System.Drawing.Size(150, 36)
+$form.Controls.Add($cacheButton)
+
 $clearButton = New-Object System.Windows.Forms.Button
 $clearButton.Text = "Clear Log"
-$clearButton.Location = New-Object System.Drawing.Point(544, 144)
+$clearButton.Location = New-Object System.Drawing.Point(18, 186)
 $clearButton.Size = New-Object System.Drawing.Size(150, 36)
 $form.Controls.Add($clearButton)
 
 $logBox = New-Object System.Windows.Forms.TextBox
-$logBox.Location = New-Object System.Drawing.Point(18, 198)
-$logBox.Size = New-Object System.Drawing.Size(760, 342)
+$logBox.Location = New-Object System.Drawing.Point(18, 236)
+$logBox.Size = New-Object System.Drawing.Size(760, 304)
 $logBox.Anchor = "Top, Left, Right, Bottom"
 $logBox.Multiline = $true
 $logBox.ScrollBars = "Vertical"
@@ -235,6 +276,8 @@ $adapterButton.Add_Click({
     Start-Process "ms-settings:network"
     Add-Log "Opened Windows network settings. Try disabling VPN or proxy before testing."
 })
+
+$cacheButton.Add_Click({ Backup-RiotClientCache })
 
 $clearButton.Add_Click({ $logBox.Clear() })
 

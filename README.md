@@ -55,10 +55,11 @@ If `vgc` still reports `Incorrect function` or remains stopped, reinstall Riot V
 - Close Riot/VALORANT processes after confirmation.
 - Flush/register DNS.
 - Run Winsock/IP reset after confirmation. A PC restart is needed after this step.
+- Move local Riot Client `Config`, `Data`, and `HttpCache` folders to a timestamped backup folder, so Riot Client can rebuild login/session cache.
 - Show a simple network snapshot.
 - Open Riot service status, Windows Firewall, and Windows network settings.
 
-Recommended order: close Riot Client, run DNS repair, reopen Riot Client manually. Use Winsock/IP reset only if the simple DNS repair does not help.
+Recommended order: close Riot Client, run DNS repair, reopen Riot Client manually. If VAL 51 remains and the logs show invalid token/session errors, use the Riot cache backup option and sign in again. Use Winsock/IP reset only if the simple DNS/cache repair does not help.
 
 ## Manual-only helper
 
