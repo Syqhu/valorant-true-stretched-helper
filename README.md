@@ -50,13 +50,16 @@ If `vgc` still reports `Incorrect function` or remains stopped, reinstall Riot V
 
 `Start-ManualStretchHelper.cmd` is intended for safer sharing. It only:
 
-- Lists local `GameUserSettings.ini` files.
+- Lists local `GameUserSettings.ini` files with Fill/Letterbox, resolution, and read-only state.
 - Opens the selected INI in Notepad.
 - Copies suggested INI lines to the clipboard.
 - Copies read-only / unlock commands to the clipboard.
+- Copies a manual Fill repair command for the selected account INI plus the shared `WindowsClient` INI.
 - Opens Windows display settings.
 
 It does not automatically edit files, start VALORANT, monitor VALORANT, manipulate VALORANT windows, change registry values, or control Vanguard services.
+
+If the game keeps returning to Letterbox, close VALORANT/Riot Client, set both the latest account `GameUserSettings.ini` and the shared `WindowsClient\GameUserSettings.ini` to Fill, then set both files read-only before launching the game manually. A `ResolutionSizeY` such as `1040` usually means the game saved a window/client-area size instead of the intended stretched height.
 
 ## Reported test symptoms
 

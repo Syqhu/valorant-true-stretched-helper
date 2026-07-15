@@ -19,6 +19,46 @@ function Get-SelectedResolution {
     return @{ Width = 1280; Height = 1080 }
 }
 
+function Get-IniValues($path) {
+    $values = @{}
+    if (-not (Test-Path -LiteralPath $path)) { return $values }
+
+    Get-Content -LiteralPath $path | ForEach-Object {
+        if ($_ -match "^([^=]+)=(.*)$") {
+            $values[$Matches[1]] = $Matches[2]
+        }
+    }
+
+    return $values
+}
+
+function Get-IniFillState($path) {
+    $values = Get-IniValues $path
+    $letterbox = [string]$values["bShouldLetterbox"]
+    $confirmed = [string]$values["bLastConfirmedShouldLetterbox"]
+
+    if ($letterbox -ieq "False" -and $confirmed -ieq "False") { return "Fill" }
+    if ($letterbox -ieq "True" -or $confirmed -ieq "True") { return "Letterbox" }
+    return "Unknown"
+}
+
+function Get-IniResolutionText($path) {
+    $values = Get-IniValues $path
+    $x = [string]$values["ResolutionSizeX"]
+    $y = [string]$values["ResolutionSizeY"]
+    $desiredX = [string]$values["DesiredScreenWidth"]
+    $desiredY = [string]$values["DesiredScreenHeight"]
+
+    if ($x -and $y) {
+        if ($desiredX -and $desiredY -and ($x -ne $desiredX -or $y -ne $desiredY)) {
+            return "$($x)x$($y) / desired $($desiredX)x$($desiredY)"
+        }
+        return "$($x)x$($y)"
+    }
+
+    return "Unknown"
+}
+
 function Get-IniSnippet {
     $res = Get-SelectedResolution
     $fullscreenMode = if ([string]$displayModeBox.SelectedItem -eq "Windowed Fullscreen") { 1 } else { 2 }
@@ -43,19 +83,92 @@ bUseDesiredScreenHeight=False
 "@
 }
 
+function Get-RelatedConfigPaths($selectedPath) {
+    $paths = New-Object System.Collections.Generic.List[string]
+    if ($selectedPath) { [void]$paths.Add($selectedPath) }
+
+    $commonPath = Join-Path $env:LOCALAPPDATA "VALORANT\Saved\Config\WindowsClient\GameUserSettings.ini"
+    if ((Test-Path -LiteralPath $commonPath) -and ($paths -notcontains $commonPath)) {
+        [void]$paths.Add($commonPath)
+    }
+
+    return @($paths)
+}
+
+function Escape-PowerShellSingleQuote($text) {
+    return ([string]$text).Replace("'", "''")
+}
+
+function Get-ManualPatchCommand($selectedPath) {
+    $res = Get-SelectedResolution
+    $fullscreenMode = if ([string]$displayModeBox.SelectedItem -eq "Windowed Fullscreen") { 1 } else { 2 }
+    $paths = Get-RelatedConfigPaths $selectedPath
+    if ($paths.Count -eq 0) { return "" }
+
+    $quotedPaths = @($paths | ForEach-Object { "'" + (Escape-PowerShellSingleQuote $_) + "'" })
+    $pathText = $quotedPaths -join ", "
+
+    return @"
+# VALORANT / Riot Client を閉じてから実行してください。
+`$paths = @($pathText)
+`$values = [ordered]@{
+    bShouldLetterbox = 'False'
+    bLastConfirmedShouldLetterbox = 'False'
+    ResolutionSizeX = '$($res.Width)'
+    ResolutionSizeY = '$($res.Height)'
+    LastUserConfirmedResolutionSizeX = '$($res.Width)'
+    LastUserConfirmedResolutionSizeY = '$($res.Height)'
+    WindowPosX = '0'
+    WindowPosY = '0'
+    LastConfirmedFullscreenMode = '$fullscreenMode'
+    PreferredFullscreenMode = '$fullscreenMode'
+    DesiredScreenWidth = '$($res.Width)'
+    DesiredScreenHeight = '$($res.Height)'
+    LastUserConfirmedDesiredScreenWidth = '$($res.Width)'
+    LastUserConfirmedDesiredScreenHeight = '$($res.Height)'
+    FullscreenMode = '$fullscreenMode'
+    bUseDesiredScreenHeight = 'False'
+}
+foreach (`$path in `$paths) {
+    if (-not (Test-Path -LiteralPath `$path)) { continue }
+    attrib -R "`$path"
+    `$lines = @(Get-Content -LiteralPath `$path)
+    foreach (`$key in `$values.Keys) {
+        `$pattern = '^{0}=' -f [regex]::Escape(`$key)
+        `$found = `$false
+        `$lines = @(`$lines | ForEach-Object {
+            if (`$_ -match `$pattern) {
+                `$found = `$true
+                "`$key=`$(`$values[`$key])"
+            } else {
+                `$_
+            }
+        })
+        if (-not `$found) {
+            `$lines += "`$key=`$(`$values[`$key])"
+        }
+    }
+    Set-Content -LiteralPath `$path -Value `$lines -Encoding UTF8
+    attrib +R "`$path"
+}
+"@
+}
+
 function Refresh-ConfigList {
     $configList.Items.Clear()
     $files = Get-ValorantConfigFiles
 
     foreach ($file in $files) {
         $item = New-Object System.Windows.Forms.ListViewItem($file.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss"))
+        [void]$item.SubItems.Add((Get-IniFillState $file.FullName))
+        [void]$item.SubItems.Add((Get-IniResolutionText $file.FullName))
         [void]$item.SubItems.Add($file.IsReadOnly.ToString())
         [void]$item.SubItems.Add($file.FullName)
         $item.Tag = $file.FullName
         $configList.Items.Add($item) | Out-Null
     }
 
-    $status.Text = "設定ファイル: $($files.Count) 件。VALORANTは手動で起動してください。このツールは起動/監視/自動変更しません。"
+    $status.Text = "設定ファイル: $($files.Count) 件。最新アカウントINIと WindowsClient の両方を Fill にして、起動前に読み取り専用へ。"
 }
 
 function Get-SelectedConfigPath {
@@ -135,9 +248,11 @@ $configList.Anchor = "Top, Left, Right"
 $configList.FullRowSelect = $true
 $configList.GridLines = $true
 $configList.View = "Details"
-[void]$configList.Columns.Add("更新日時", 150)
-[void]$configList.Columns.Add("読取専用", 80)
-[void]$configList.Columns.Add("GameUserSettings.ini", 570)
+[void]$configList.Columns.Add("更新日時", 140)
+[void]$configList.Columns.Add("状態", 82)
+[void]$configList.Columns.Add("解像度", 170)
+[void]$configList.Columns.Add("読取専用", 78)
+[void]$configList.Columns.Add("GameUserSettings.ini", 350)
 $form.Controls.Add($configList)
 
 $snippetBox = New-Object System.Windows.Forms.TextBox
@@ -154,37 +269,43 @@ $form.Controls.Add($snippetBox)
 $copySnippetButton = New-Object System.Windows.Forms.Button
 $copySnippetButton.Text = "INI値をコピー"
 $copySnippetButton.Location = New-Object System.Drawing.Point(18, 516)
-$copySnippetButton.Size = New-Object System.Drawing.Size(116, 32)
+$copySnippetButton.Size = New-Object System.Drawing.Size(104, 32)
 $form.Controls.Add($copySnippetButton)
 
 $openIniButton = New-Object System.Windows.Forms.Button
 $openIniButton.Text = "選択INIを開く"
-$openIniButton.Location = New-Object System.Drawing.Point(146, 516)
-$openIniButton.Size = New-Object System.Drawing.Size(116, 32)
+$openIniButton.Location = New-Object System.Drawing.Point(130, 516)
+$openIniButton.Size = New-Object System.Drawing.Size(104, 32)
 $form.Controls.Add($openIniButton)
 
 $openFolderButton = New-Object System.Windows.Forms.Button
 $openFolderButton.Text = "フォルダを開く"
-$openFolderButton.Location = New-Object System.Drawing.Point(274, 516)
-$openFolderButton.Size = New-Object System.Drawing.Size(116, 32)
+$openFolderButton.Location = New-Object System.Drawing.Point(242, 516)
+$openFolderButton.Size = New-Object System.Drawing.Size(104, 32)
 $form.Controls.Add($openFolderButton)
 
 $copyReadonlyButton = New-Object System.Windows.Forms.Button
 $copyReadonlyButton.Text = "読取専用コマンド"
-$copyReadonlyButton.Location = New-Object System.Drawing.Point(402, 516)
-$copyReadonlyButton.Size = New-Object System.Drawing.Size(140, 32)
+$copyReadonlyButton.Location = New-Object System.Drawing.Point(354, 516)
+$copyReadonlyButton.Size = New-Object System.Drawing.Size(126, 32)
 $form.Controls.Add($copyReadonlyButton)
 
 $copyUnlockButton = New-Object System.Windows.Forms.Button
 $copyUnlockButton.Text = "解除コマンド"
-$copyUnlockButton.Location = New-Object System.Drawing.Point(554, 516)
-$copyUnlockButton.Size = New-Object System.Drawing.Size(116, 32)
+$copyUnlockButton.Location = New-Object System.Drawing.Point(488, 516)
+$copyUnlockButton.Size = New-Object System.Drawing.Size(96, 32)
 $form.Controls.Add($copyUnlockButton)
+
+$copyPatchButton = New-Object System.Windows.Forms.Button
+$copyPatchButton.Text = "Fill修正コマンド"
+$copyPatchButton.Location = New-Object System.Drawing.Point(592, 516)
+$copyPatchButton.Size = New-Object System.Drawing.Size(124, 32)
+$form.Controls.Add($copyPatchButton)
 
 $displaySettingsButton = New-Object System.Windows.Forms.Button
 $displaySettingsButton.Text = "Windows画面設定"
-$displaySettingsButton.Location = New-Object System.Drawing.Point(682, 516)
-$displaySettingsButton.Size = New-Object System.Drawing.Size(150, 32)
+$displaySettingsButton.Location = New-Object System.Drawing.Point(724, 516)
+$displaySettingsButton.Size = New-Object System.Drawing.Size(122, 32)
 $form.Controls.Add($displaySettingsButton)
 
 $status = New-Object System.Windows.Forms.Label
@@ -247,6 +368,17 @@ $copyUnlockButton.Add_Click({
         $cmd = "attrib -R `"$path`""
         [System.Windows.Forms.Clipboard]::SetText($cmd)
         $status.Text = "読み取り専用を解除する手動コマンドをコピーしました。"
+    } else {
+        $status.Text = "INIが選択されていません。"
+    }
+})
+
+$copyPatchButton.Add_Click({
+    $path = Get-SelectedConfigPath
+    if ($path) {
+        $cmd = Get-ManualPatchCommand $path
+        [System.Windows.Forms.Clipboard]::SetText($cmd)
+        $status.Text = "Fill修正コマンドをコピーしました。VALORANT/Riotを閉じた状態で手動実行してください。実行後は一覧更新で確認できます。"
     } else {
         $status.Text = "INIが選択されていません。"
     }
