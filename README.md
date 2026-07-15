@@ -10,6 +10,8 @@ It is being shared for support / troubleshooting context. It is not a cheat, doe
 - `Start-ValorantTrueStretch.cmd` - Starts the helper with administrator prompt.
 - `VAN102Fix.ps1` - One-click recovery helper for local VAN -102 troubleshooting.
 - `Start-VAN102Fix.cmd` - Starts the VAN -102 recovery helper with administrator prompt.
+- `VAL51Fix.ps1` - Safe network/Riot Client reset helper for VAL 51 troubleshooting.
+- `Start-VAL51Fix.cmd` - Starts the VAL 51 helper with administrator prompt.
 - `ManualStretchHelper.ps1` - Safer manual-only helper. It does not launch VALORANT, monitor VALORANT, edit INI files automatically, touch Vanguard, use window APIs, or change registry values.
 - `Start-ManualStretchHelper.cmd` - Starts the manual-only helper.
 - `FPSBoostTool.ps1` - General FPS preparation helper. It can trim memory, switch power plan, open Windows game settings, and close selected non-system apps.
@@ -45,6 +47,18 @@ It is being shared for support / troubleshooting context. It is not a cheat, doe
 - Shows the latest relevant `vgc` event message.
 
 If `vgc` still reports `Incorrect function` or remains stopped, reinstall Riot Vanguard and reboot.
+
+## VAL 51 recovery helper
+
+`Start-VAL51Fix.cmd` does not launch VALORANT, control Vanguard, bypass restrictions, or edit registry values. It can:
+
+- Close Riot/VALORANT processes after confirmation.
+- Flush/register DNS.
+- Run Winsock/IP reset after confirmation. A PC restart is needed after this step.
+- Show a simple network snapshot.
+- Open Riot service status, Windows Firewall, and Windows network settings.
+
+Recommended order: close Riot Client, run DNS repair, reopen Riot Client manually. Use Winsock/IP reset only if the simple DNS repair does not help.
 
 ## Manual-only helper
 
